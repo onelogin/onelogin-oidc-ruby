@@ -8,7 +8,41 @@ implements
 * Logout - destroying the local session and revoking the token at OneLogin
 * User Info - fetching profile information from OneLogin
 
-The majority of the logic is found in the `sessions_controller.rb` and `sessions_helper.rb`.
+The `openid-connect` gem takes care of generating the auth url in the `sessions_helper`.
+
+```ruby
+def authorization_uri
+  session[:state] = SecureRandom.hex(16)
+  session[:nonce] = SecureRandom.hex(16)
+
+  client.authorization_uri(
+    scope: scope,
+    state: session[:state],
+    nonce: session[:nonce]
+  )
+end
+```
+
+and the callback is handled in the `sessions_controller`.
+
+```ruby
+def callback
+  # Authorization Response
+  code = params[:code]
+
+  # Token Request
+  client.authorization_code = code
+  access_token = client.access_token! # => OpenIDConnect::AccessToken
+
+  if access_token
+    log_in(access_token.to_s)
+    redirect_to '/dashboard'
+  else
+    redirect_to root_url
+  end
+end
+```
+
 
 The `dashboard#index` is a protected page to prove the authentication works and creates a session. You will need to be authenticated to view it.
 
@@ -26,7 +60,7 @@ of your OneLogin account and the Redirect Uri of your local site.
 You need to make sure that this matches what you specified as the
 Redirect Uri when you setup your OIDC app connector in the OneLogin portal.
 
-```
+```ruby
 ONELOGIN_CLIENT_ID = 'ONELOGIN CLIENT ID'
 ONELOGIN_CLIENT_SECRET = 'ONELOGIN CLIENT SECRET'
 ONELOGIN_REDIRECT_URI = 'CALLBACK URI'
