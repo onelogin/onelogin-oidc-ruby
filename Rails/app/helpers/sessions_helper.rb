@@ -1,9 +1,9 @@
 module SessionsHelper
 
-  ONELOGIN_CLIENT_ID = 'cabf7b20-deaf-0135-18f0-0ab561a5b6eb92920'
-  ONELOGIN_CLIENT_SECRET = '64888d5c58113bdd8649a8c8f37bd400234bcecbf54bc6e217f25bf693218514'
-  ONELOGIN_REDIRECT_URI = 'https://8d607633.ngrok.io/signin-oidc'
-  ONELOGIN_OIDC_HOST = 'sharkbytes.onelogin-shadow01.com'
+  ONELOGIN_CLIENT_ID = 'ONELOGIN CLIENT ID'
+  ONELOGIN_CLIENT_SECRET = 'ONELOGIN CLIENT SECRET'
+  ONELOGIN_REDIRECT_URI = 'CALLBACK URI'
+  ONELOGIN_OIDC_HOST = 'SUBDOMAIN.onelogin.com'
 
   def client
     @client ||= OpenIDConnect::Client.new(
