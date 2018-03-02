@@ -26,6 +26,15 @@ of your OneLogin account and the Redirect Uri of your local site.
 You need to make sure that this matches what you specified as the
 Redirect Uri when you setup your OIDC app connector in the OneLogin portal.
 
+```
+ONELOGIN_CLIENT_ID = 'ONELOGIN CLIENT ID'
+ONELOGIN_CLIENT_SECRET = 'ONELOGIN CLIENT SECRET'
+ONELOGIN_REDIRECT_URI = 'CALLBACK URI'
+ONELOGIN_OIDC_HOST = 'SUBDOMAIN.onelogin.com'
+```
+
+**Note** to keep the example simple we have included the configuration in the `sessions_helper` but you should store these values in environment variables or a secrets file.
+
 ## Run
 From the command line run
 ```
