@@ -2,7 +2,9 @@
 
 This repo contains ruby sample apps that demonstrate the various OpenId Connect flows.
 
-1. Rails
+1. Rails - Authentication Flow
+
+For a singe page app (SPA) example see our [Node.js OpenId Connect repo](https://github.com/onelogin/onelogin-oidc-node/tree/master/2.%20Implicit%20Flow).
 
 ## What can I use these for
 OpenId Connect is a great way to add user authentication to your application
