@@ -1,6 +1,6 @@
-# OneLogin OpenId Connect Implicit Flow Sample
+# OneLogin OpenId Connect Authentication Flow Sample
 
-This sample is default Rails 5 app that makes use of the [openid-connect](https://github.com/nov/openid_connect) gem for managing user authentication.
+This sample is default Rails 5 app that makes use of the [openid-connect](https://github.com/nov/openid_connect) gem for authenticating users via the OpenId Connect Authentication Flow.
 
 The sample tries to keep everything as simple as possible so only
 implements
