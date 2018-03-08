@@ -3,6 +3,7 @@
 This repo contains ruby sample apps that demonstrate the various OpenId Connect flows.
 
 1. Rails - Authentication Flow
+2. Rails - Resource Owner Password Grant
 
 For a singe page app (SPA) example see our [Node.js OpenId Connect repo](https://github.com/onelogin/onelogin-oidc-node/tree/master/2.%20Implicit%20Flow).
 
