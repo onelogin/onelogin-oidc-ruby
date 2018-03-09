@@ -1,4 +1,4 @@
-# OneLogin OpenId Connect Resource Owner Password Grant Sample
+# Resource Owner Password Grant Sample
 
 This sample is a default [Ruby on Rails 5](http://rubyonrails.org/) app that makes use of the [openid-connect](https://github.com/nov/openid_connect) gem for authenticating users via the OpenId Connect Resource Owner Password Grant Flow.
 
