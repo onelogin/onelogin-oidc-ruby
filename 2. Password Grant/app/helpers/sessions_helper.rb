@@ -1,50 +1,40 @@
+require 'httparty'
+
 module SessionsHelper
 
-  ONELOGIN_CLIENT_ID = 'ONELOGIN CLIENT ID'
-  ONELOGIN_CLIENT_SECRET = 'ONELOGIN CLIENT SECRET'
-  ONELOGIN_REDIRECT_URI = 'CALLBACK URI'
-  ONELOGIN_OIDC_HOST = 'SUBDOMAIN.onelogin.com'
+  ONELOGIN_CLIENT_ID = 'YOUR OIDC CLIENT ID'
+  ONELOGIN_CLIENT_SECRET = 'YOUR OIDC CLIENT SECRET'
+  ONELOGIN_SUBDOMAIN = 'SUBDOMAIN'
 
-  def client
-    @client ||= OpenIDConnect::Client.new(
-      identifier: ONELOGIN_CLIENT_ID,
-      secret: ONELOGIN_CLIENT_SECRET,
-      redirect_uri: ONELOGIN_REDIRECT_URI,
-      host: ONELOGIN_OIDC_HOST,
-      authorization_endpoint: '/oidc/auth',
-      token_endpoint: '/oidc/token',
-      userinfo_endpoint: '/oidc/me'
+  def log_in(username, password)
+    response = HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/token",
+      body: {
+        grant_type: 'password',
+        client_id: ONELOGIN_CLIENT_ID,
+        client_secret: ONELOGIN_CLIENT_SECRET,
+        username: username,
+        password: password,
+        scope: 'openid profile email'
+      }
     )
-  end
 
-  def authorization_uri
-    session[:state] = SecureRandom.hex(16)
-    session[:nonce] = SecureRandom.hex(16)
+    json = JSON.parse(response.body)
 
-    client.authorization_uri(
-      scope: scope,
-      state: session[:state],
-      nonce: session[:nonce]
-    )
-  end
+    return nil unless json['access_token']
 
-  def scope
-    default_scope = %w(profile name)
-
-    # Add scope for social provider if social login is requested
-    if params[:provider].present?
-      default_scope << params[:provider]
-    else
-      default_scope
-    end
-  end
-
-  def log_in(access_token)
-    puts "ACCESS_TOKEN: #{access_token}"
-    session[:access_token] = access_token
+    session[:access_token] = json['access_token']
   end
 
   def log_out
+    HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/token/revocation",
+      body: {
+        client_id: ONELOGIN_CLIENT_ID,
+        client_secret: ONELOGIN_CLIENT_SECRET,
+        token: session[:access_token],
+        token_type_hint: 'access_token'
+      }
+    )
+
     session.delete(:access_token)
     @current_user = nil
   end
@@ -52,12 +42,13 @@ module SessionsHelper
   def user_info
     return nil unless session[:access_token].present?
 
-    access_token = OpenIDConnect::AccessToken.new(
-      access_token: session[:access_token],
-      client: client
+    response = HTTParty.get("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/me",
+      headers: {
+        'Authorization' => "Bearer #{session[:access_token]}"
+      }
     )
 
-    access_token.userinfo!
+    JSON.parse(response.body)
   end
 
   def current_user

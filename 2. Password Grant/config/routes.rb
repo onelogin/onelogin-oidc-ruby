@@ -1,8 +1,7 @@
 Rails.application.routes.draw do
   get 'home/index'
 
-  get 'login', to: 'sessions#new', as: 'new_session'
-  get 'signin-oidc', to: 'sessions#callback', as: 'session_callback'
+  post 'login', to: 'sessions#new', as: 'new_session'
   get 'logout', to: 'sessions#destroy', as: 'destroy_session'
 
   get 'dashboard', to: 'dashboard#index'

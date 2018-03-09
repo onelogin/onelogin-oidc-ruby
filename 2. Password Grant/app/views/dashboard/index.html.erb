@@ -3,7 +3,16 @@
   You must be authenticated to see this page so if you're seeing it then
   everything worked as expected 🎉
 </p>
+
+<p>
+  <a href="/logout">Log Out</a>
+</p>
+
 <h2>Current User</h2>
-<p>Id: <%= current_user.sub %></p>
-<p>Name: <%= current_user.given_name %> <%= current_user.family_name %></p>
-<p>Email: <%= current_user.email %></p>
+
+<%current_user.each do |k, v|%>
+  <div class="profile">
+    <span><%= k%>:</span> <%= v%>
+  </div>
+<%end%>
+
