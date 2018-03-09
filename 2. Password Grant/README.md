@@ -1,48 +1,69 @@
-# OneLogin OpenId Connect Authentication Flow Sample
+# OneLogin OpenId Connect Resource Owner Password Grant Sample
 
-This sample is a default [Ruby on Rails 5](http://rubyonrails.org/) app that makes use of the [openid-connect](https://github.com/nov/openid_connect) gem for authenticating users via the OpenId Connect Authentication Flow.
+This sample is a default [Ruby on Rails 5](http://rubyonrails.org/) app that makes use of the [openid-connect](https://github.com/nov/openid_connect) gem for authenticating users via the OpenId Connect Resource Owner Password Grant Flow.
 
 The sample tries to keep everything as simple as possible so only
 implements
-* Login - redirecting users to OneLogin for authentication
-* Logout - destroying the local session and revoking the token at OneLogin
+* Login - Authenticate users in a single request to OneLogin with out any redirects
 * User Info - fetching profile information from OneLogin
+* Logout - destroying the local session and revoking the token at OneLogin
 
-The `openid-connect` gem takes care of generating the auth url in the `sessions_helper`.
+### Authenticate the user
 
 ```ruby
-def authorization_uri
-  session[:state] = SecureRandom.hex(16)
-  session[:nonce] = SecureRandom.hex(16)
-
-  client.authorization_uri(
-    scope: scope,
-    state: session[:state],
-    nonce: session[:nonce]
+def log_in(username, password)
+  response = HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/token",
+    body: {
+      grant_type: 'password',
+      client_id: ONELOGIN_CLIENT_ID,
+      client_secret: ONELOGIN_CLIENT_SECRET,
+      username: username,
+      password: password,
+      scope: 'openid profile email'
+    }
   )
+
+  json = JSON.parse(response.body)
+
+  return nil unless json['access_token']
+
+  session[:access_token] = json['access_token']
 end
 ```
 
-and the callback is handled in the `sessions_controller`.
+### Fetch user info
 
 ```ruby
-def callback
-  # Authorization Response
-  code = params[:code]
+  def user_info
+    return nil unless session[:access_token].present?
 
-  # Token Request
-  client.authorization_code = code
-  access_token = client.access_token! # => OpenIDConnect::AccessToken
+    response = HTTParty.get("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/me",
+      headers: {
+        'Authorization' => "Bearer #{session[:access_token]}"
+      }
+    )
 
-  if access_token
-    log_in(access_token.to_s)
-    redirect_to '/dashboard'
-  else
-    redirect_to root_url
+    JSON.parse(response.body)
   end
-end
 ```
 
+### Destroy the session
+
+```ruby
+def log_out
+  HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/token/revocation",
+    body: {
+      client_id: ONELOGIN_CLIENT_ID,
+      client_secret: ONELOGIN_CLIENT_SECRET,
+      token: session[:access_token],
+      token_type_hint: 'access_token'
+    }
+  )
+
+  session.delete(:access_token)
+  @current_user = nil
+end
+```
 
 The `dashboard#index` is a protected page to prove the authentication works and creates a session. You will need to be authenticated to view it.
 
@@ -55,16 +76,13 @@ If you don't have a OneLogin developer account [you can sign up here](https://ww
 1. Clone this repo
 2. Update `app/helpers/sessions_helper.rb` with the **client_id** and
 **client_secret** you obtained from OneLogin as well as the **subdomain**
-of your OneLogin account and the Redirect Uri of your local site.
+of your OneLogin account.
 
-You need to make sure that this matches what you specified as the
-Redirect Uri when you setup your OIDC app connector in the OneLogin portal.
 
 ```ruby
 ONELOGIN_CLIENT_ID = 'ONELOGIN CLIENT ID'
 ONELOGIN_CLIENT_SECRET = 'ONELOGIN CLIENT SECRET'
-ONELOGIN_REDIRECT_URI = 'CALLBACK URI'
-ONELOGIN_OIDC_HOST = 'SUBDOMAIN.onelogin.com'
+ONELOGIN_SUBDOMAIN = 'SUBDOMAIN'
 ```
 
 **Note** to keep the example simple we have included the configuration in the `sessions_helper` but you should store these values in environment variables or a secrets file.
@@ -75,14 +93,3 @@ From the command line run
 > bundle install
 > rails s
 ```
-
-### Local testing
-By default these samples will run on `http://localhost:3000` but since localhost
-is not supported by the OIDC spec you will need to use a tool like [Ngrok](https://ngrok.com/)
-for local testing.
-
-Install ngrok using `npm install -g ngrok` then run `ngrok http 3000` and Ngrok will
-give you a public HTTPS url that you can browse to and see your local app.
-
-You will need to set this Ngrok url as the **redirect_uri** in your OneLogin OIDC app
-via the Admin portal and also in your `.env` file.
