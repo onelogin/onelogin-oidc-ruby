@@ -53,21 +53,18 @@ app in your OneLogin Admin portal.
 If you don't have a OneLogin developer account [you can sign up here](https://www.onelogin.com/developer-signup).
 
 1. Clone this repo
-2. Update `app/helpers/sessions_helper.rb` with the **client_id** and
-**client_secret** you obtained from OneLogin as well as the **subdomain**
-of your OneLogin account and the Redirect Uri of your local site.
+2. Rename `.env.sample` to `.env` and set the **ONELOGIN_CLIENT_ID** and
+**ONELOGIN_CLIENT_SECRET** you obtained from OneLogin as well as the Redirect Uri of your local site.
 
 You need to make sure that this matches what you specified as the
 Redirect Uri when you setup your OIDC app connector in the OneLogin portal.
 
 ```ruby
-ONELOGIN_CLIENT_ID = 'ONELOGIN CLIENT ID'
-ONELOGIN_CLIENT_SECRET = 'ONELOGIN CLIENT SECRET'
-ONELOGIN_REDIRECT_URI = 'CALLBACK URI'
-ONELOGIN_OIDC_HOST = 'SUBDOMAIN.onelogin.com'
+ONELOGIN_CLIENT_ID= YOUR_ONELOGIN_CLIENT_ID
+ONELOGIN_CLIENT_SECRET= YOUR_ONELOGIN_CLIENT_SECRET
+ONELOGIN_REDIRECT_URI= YOUR_CALLBACK_URI
+ONELOGIN_OIDC_HOST=openid-connect.onelogin.com
 ```
-
-**Note** to keep the example simple we have included the configuration in the `sessions_helper` but you should store these values in environment variables or a secrets file.
 
 ## Run
 From the command line run
@@ -77,12 +74,6 @@ From the command line run
 ```
 
 ### Local testing
-By default these samples will run on `http://localhost:3000` but since localhost
-is not supported by the OIDC spec you will need to use a tool like [Ngrok](https://ngrok.com/)
-for local testing.
+By default these samples will run on `http://localhost:3000`.
 
-Install ngrok using `npm install -g ngrok` then run `ngrok http 3000` and Ngrok will
-give you a public HTTPS url that you can browse to and see your local app.
-
-You will need to set this Ngrok url as the **redirect_uri** in your OneLogin OIDC app
-via the Admin portal and also in your `.env` file.
+You will need to add your callback url to the list of approved **Redirect URIs** for your OneLogin OIDC app via the Admin portal. e.g. `http://localhost:3000/oauth/callback`

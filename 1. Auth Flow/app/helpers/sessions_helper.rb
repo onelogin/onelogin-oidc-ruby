@@ -1,16 +1,11 @@
 module SessionsHelper
 
-  ONELOGIN_CLIENT_ID = 'ONELOGIN CLIENT ID'
-  ONELOGIN_CLIENT_SECRET = 'ONELOGIN CLIENT SECRET'
-  ONELOGIN_REDIRECT_URI = 'CALLBACK URI'
-  ONELOGIN_OIDC_HOST = 'SUBDOMAIN.onelogin.com'
-
   def client
     @client ||= OpenIDConnect::Client.new(
-      identifier: ONELOGIN_CLIENT_ID,
-      secret: ONELOGIN_CLIENT_SECRET,
-      redirect_uri: ONELOGIN_REDIRECT_URI,
-      host: ONELOGIN_OIDC_HOST,
+      identifier: ENV['ONELOGIN_CLIENT_ID'],
+      secret: ENV['ONELOGIN_CLIENT_SECRET'],
+      redirect_uri: ENV['ONELOGIN_REDIRECT_URI'],
+      host: ENV['ONELOGIN_OIDC_HOST'],
       authorization_endpoint: '/oidc/auth',
       token_endpoint: '/oidc/token',
       userinfo_endpoint: '/oidc/me'
