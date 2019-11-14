@@ -70,7 +70,7 @@ GEM
     httparty (0.17.1)
       mime-types (~> 3.0)
       multi_xml (>= 0.5.2)
-    i18n (1.5.1)
+    i18n (1.7.0)
       concurrent-ruby (~> 1.0)
     jbuilder (2.9.1)
       activesupport (>= 4.2.0)
