@@ -75,12 +75,12 @@ GEM
     globalid (0.4.2)
       activesupport (>= 4.2.0)
     httpclient (2.8.3)
-    i18n (1.5.1)
+    i18n (1.7.0)
       concurrent-ruby (~> 1.0)
     jbuilder (2.9.1)
       activesupport (>= 4.2.0)
-    json-jwt (1.9.4)
-      activesupport
+    json-jwt (1.11.0)
+      activesupport (>= 4.2)
       aes_key_wrap
       bindata
     listen (3.1.5)
@@ -97,7 +97,7 @@ GEM
     mini_portile2 (2.4.0)
     minitest (5.13.0)
     nio4r (2.3.1)
-    nokogiri (1.9.1)
+    nokogiri (1.10.5)
       mini_portile2 (~> 2.4.0)
     openid_connect (1.1.8)
       activemodel
