@@ -4,15 +4,12 @@
   everything worked as expected 🎉
 </p>
 
-<p>
-  <a href="/logout">Log Out</a>
-</p>
+<%= button_to "Log Out", destroy_session_path, method: :delete %>
 
 <h2>Current User</h2>
 
-<%current_user.each do |k, v|%>
+<% current_user.each do |k, v| %>
   <div class="profile">
-    <span><%= k%>:</span> <%= v%>
+    <span><%= k %>:</span> <%= v %>
   </div>
-<%end%>
-
+<% end %>

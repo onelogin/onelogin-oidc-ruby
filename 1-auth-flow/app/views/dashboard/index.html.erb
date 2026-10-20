@@ -3,6 +3,9 @@
   You must be authenticated to see this page so if you're seeing it then
   everything worked as expected 🎉
 </p>
+
+<%= button_to "Log Out", destroy_session_path, method: :delete %>
+
 <h2>Current User</h2>
 <p>Id: <%= current_user.sub %></p>
 <p>Name: <%= current_user.given_name %> <%= current_user.family_name %></p>

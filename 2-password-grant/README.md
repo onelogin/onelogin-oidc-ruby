@@ -1,6 +1,9 @@
 # Resource Owner Password Grant Sample
 
-This sample is a default [Ruby on Rails 5](http://rubyonrails.org/) app that makes use of the [openid-connect](https://github.com/nov/openid_connect) gem for authenticating users via the OpenId Connect Resource Owner Password Grant Flow.
+This sample is a default [Ruby on Rails 8](https://rubyonrails.org/) app that uses [HTTParty](https://github.com/jnunemaker/httparty) to authenticate users with the OpenId Connect [Resource Owner Password Grant](https://developers.onelogin.com/openid-connect/api/password-grant).
+
+The password grant hands the user's password to your app, so only use it for apps you fully
+trust. Prefer the [Authentication Flow sample](../1-auth-flow) for new apps.
 
 The sample tries to keep everything as simple as possible so only
 implements
@@ -12,55 +15,58 @@ implements
 
 ```ruby
 def log_in(username, password)
-  response = HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/2/token",
+  response = HTTParty.post("#{issuer}/token",
     body: {
-      grant_type: 'password',
-      client_id: ONELOGIN_CLIENT_ID,
-      client_secret: ONELOGIN_CLIENT_SECRET,
+      grant_type: "password",
+      client_id: ENV.fetch("ONELOGIN_CLIENT_ID"),
+      client_secret: ENV.fetch("ONELOGIN_CLIENT_SECRET"),
       username: username,
       password: password,
-      scope: 'openid profile email'
+      scope: "openid profile email"
     }
   )
 
-  json = JSON.parse(response.body)
-
-  return nil unless json['access_token']
-
-  session[:access_token] = json['access_token']
+  if response.ok?
+    session[:access_token] = response["access_token"]
+  else
+    logger.warn("Login failed: HTTP #{response.code} #{response.body}")
+    nil
+  end
 end
 ```
 
 ### Fetch user info
 
 ```ruby
-  def user_info
-    return nil unless session[:access_token].present?
+def user_info
+  return nil unless session[:access_token].present?
 
-    response = HTTParty.get("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/2/me",
-      headers: {
-        'Authorization' => "Bearer #{session[:access_token]}"
-      }
-    )
+  response = HTTParty.get("#{issuer}/me",
+    headers: {
+      "Authorization" => "Bearer #{session[:access_token]}"
+    }
+  )
 
-    JSON.parse(response.body)
-  end
+  response.parsed_response if response.ok?
+end
 ```
 
 ### Destroy the session
 
 ```ruby
 def log_out
-  HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/2/token/revocation",
-    body: {
-      client_id: ONELOGIN_CLIENT_ID,
-      client_secret: ONELOGIN_CLIENT_SECRET,
-      token: session[:access_token],
-      token_type_hint: 'access_token'
-    }
-  )
+  if session[:access_token].present?
+    HTTParty.post("#{issuer}/token/revocation",
+      body: {
+        client_id: ENV.fetch("ONELOGIN_CLIENT_ID"),
+        client_secret: ENV.fetch("ONELOGIN_CLIENT_SECRET"),
+        token: session[:access_token],
+        token_type_hint: "access_token"
+      }
+    )
+  end
 
-  session.delete(:access_token)
+  reset_session
   @current_user = nil
 end
 ```
@@ -74,22 +80,34 @@ app in your OneLogin Admin portal.
 If you don't have a OneLogin developer account [you can sign up here](https://www.onelogin.com/developer-signup).
 
 1. Clone this repo
-2. Update `app/helpers/sessions_helper.rb` with the **client_id** and
-**client_secret** you obtained from OneLogin as well as the **subdomain**
-of your OneLogin account.
+2. On the app's **SSO** tab, set **Token Endpoint Authentication Method** to **POST**. This sample
+sends the client credentials in the request body.
+3. Copy `.env.sample` to `.env` and set the **Client ID** and **Client Secret** from the SSO tab,
+and your OneLogin subdomain.
 
-
-```ruby
-ONELOGIN_CLIENT_ID = 'ONELOGIN CLIENT ID'
-ONELOGIN_CLIENT_SECRET = 'ONELOGIN CLIENT SECRET'
-ONELOGIN_SUBDOMAIN = 'SUBDOMAIN'
 ```
-
-**Note** to keep the example simple we have included the configuration in the `sessions_helper` but you should store these values in environment variables or a secrets file.
+ONELOGIN_ISSUER=https://YOUR_SUBDOMAIN.onelogin.com/oidc/2
+ONELOGIN_CLIENT_ID=YOUR_ONELOGIN_CLIENT_ID
+ONELOGIN_CLIENT_SECRET=YOUR_ONELOGIN_CLIENT_SECRET
+```
 
 ## Run
-From the command line run
+You need Ruby 3.4 (see `.ruby-version`). From the command line run
 ```
 > bundle install
-> rails s
+> bin/rails server
+```
+
+Then open `http://localhost:3000`.
+
+Or run it in Docker
+```
+> docker build -t onelogin-oidc-password-grant .
+> docker run --rm -p 3000:3000 --env-file .env onelogin-oidc-password-grant
+```
+
+## Test
+The tests stub OneLogin, so they need no account or network access.
+```
+> bin/rails test
 ```

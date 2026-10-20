@@ -1,0 +1,5 @@
+/.bundle
+/log/*
+/tmp/*
+# Pass settings with `docker run --env-file .env` instead of baking the client secret into the image
+.env

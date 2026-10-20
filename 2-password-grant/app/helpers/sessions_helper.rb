@@ -1,54 +1,55 @@
-require 'httparty'
-
 module SessionsHelper
-
-  ONELOGIN_CLIENT_ID = 'YOUR OIDC CLIENT ID'
-  ONELOGIN_CLIENT_SECRET = 'YOUR OIDC CLIENT SECRET'
-  ONELOGIN_SUBDOMAIN = 'SUBDOMAIN'
+  # https://<subdomain>.onelogin.com/oidc/2
+  def issuer
+    ENV.fetch("ONELOGIN_ISSUER")
+  end
 
   def log_in(username, password)
-    response = HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/2/token",
+    response = HTTParty.post("#{issuer}/token",
       body: {
-        grant_type: 'password',
-        client_id: ONELOGIN_CLIENT_ID,
-        client_secret: ONELOGIN_CLIENT_SECRET,
+        grant_type: "password",
+        client_id: ENV.fetch("ONELOGIN_CLIENT_ID"),
+        client_secret: ENV.fetch("ONELOGIN_CLIENT_SECRET"),
         username: username,
         password: password,
-        scope: 'openid profile email'
+        scope: "openid profile email"
       }
     )
 
-    json = JSON.parse(response.body)
-
-    return nil unless json['access_token']
-
-    session[:access_token] = json['access_token']
+    if response.ok?
+      session[:access_token] = response["access_token"]
+    else
+      logger.warn("Login failed: HTTP #{response.code} #{response.body}")
+      nil
+    end
   end
 
   def log_out
-    HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/2/token/revocation",
-      body: {
-        client_id: ONELOGIN_CLIENT_ID,
-        client_secret: ONELOGIN_CLIENT_SECRET,
-        token: session[:access_token],
-        token_type_hint: 'access_token'
-      }
-    )
+    if session[:access_token].present?
+      HTTParty.post("#{issuer}/token/revocation",
+        body: {
+          client_id: ENV.fetch("ONELOGIN_CLIENT_ID"),
+          client_secret: ENV.fetch("ONELOGIN_CLIENT_SECRET"),
+          token: session[:access_token],
+          token_type_hint: "access_token"
+        }
+      )
+    end
 
-    session.delete(:access_token)
+    reset_session
     @current_user = nil
   end
 
   def user_info
     return nil unless session[:access_token].present?
 
-    response = HTTParty.get("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/2/me",
+    response = HTTParty.get("#{issuer}/me",
       headers: {
-        'Authorization' => "Bearer #{session[:access_token]}"
+        "Authorization" => "Bearer #{session[:access_token]}"
       }
     )
 
-    JSON.parse(response.body)
+    response.parsed_response if response.ok?
   end
 
   def current_user

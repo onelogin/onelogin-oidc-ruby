@@ -1,9 +1,17 @@
-require File.expand_path('../../config/environment', __FILE__)
-require 'rails/test_help'
+ENV["RAILS_ENV"] ||= "test"
+ENV["ONELOGIN_ISSUER"] = "https://example.onelogin.com/oidc/2"
+ENV["ONELOGIN_CLIENT_ID"] = "test-client-id"
+ENV["ONELOGIN_CLIENT_SECRET"] = "test-client-secret"
+ENV["ONELOGIN_REDIRECT_URI"] = "http://www.example.com/signin-oidc"
+ENV["ONELOGIN_TOKEN_AUTH_METHOD"] = "basic"
 
-class ActiveSupport::TestCase
-  # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
-  fixtures :all
+require_relative "../config/environment"
+require "rails/test_help"
+require "webmock/minitest"
 
-  # Add more helper methods to be used by all tests here...
+module ActiveSupport
+  class TestCase
+    # Run tests in parallel with specified workers
+    parallelize(workers: :number_of_processors)
+  end
 end

@@ -1,46 +1,74 @@
 module SessionsHelper
+  # OneLogin publishes its endpoints and signing keys at
+  # <issuer>/.well-known/openid-configuration, so the issuer is the only URL to configure
+  def self.discovery
+    @discovery ||= OpenIDConnect::Discovery::Provider::Config.discover!(ENV.fetch("ONELOGIN_ISSUER"))
+  end
 
   def client
     @client ||= OpenIDConnect::Client.new(
-      identifier: ENV['ONELOGIN_CLIENT_ID'],
-      secret: ENV['ONELOGIN_CLIENT_SECRET'],
-      redirect_uri: ENV['ONELOGIN_REDIRECT_URI'],
-      host: ENV['ONELOGIN_OIDC_HOST'],
-      authorization_endpoint: '/oidc/2/auth',
-      token_endpoint: '/oidc/2/token',
-      userinfo_endpoint: '/oidc/2/me'
+      identifier: ENV.fetch("ONELOGIN_CLIENT_ID"),
+      secret: ENV["ONELOGIN_CLIENT_SECRET"],
+      redirect_uri: ENV.fetch("ONELOGIN_REDIRECT_URI"),
+      authorization_endpoint: SessionsHelper.discovery.authorization_endpoint,
+      token_endpoint: SessionsHelper.discovery.token_endpoint,
+      userinfo_endpoint: SessionsHelper.discovery.userinfo_endpoint,
+      # Not part of OpenID Connect Discovery, so openid_connect has no reader for it
+      revocation_endpoint: SessionsHelper.discovery.raw[:revocation_endpoint]
     )
   end
 
   def authorization_uri
     session[:state] = SecureRandom.hex(16)
     session[:nonce] = SecureRandom.hex(16)
+    session[:code_verifier] = SecureRandom.urlsafe_base64(32)
 
     client.authorization_uri(
-      scope: scope,
+      scope: %w[openid profile email],
       state: session[:state],
-      nonce: session[:nonce]
+      nonce: session[:nonce],
+      code_challenge: Base64.urlsafe_encode64(Digest::SHA256.digest(session[:code_verifier]), padding: false),
+      code_challenge_method: "S256"
     )
   end
 
-  def scope
-    default_scope = %w(profile name)
+  # Swaps the authorization code for tokens, then checks that the ID token was
+  # signed by OneLogin, issued to this app, and belongs to this login attempt
+  def request_access_token(code)
+    client.authorization_code = code
+    access_token = client.access_token!(
+      client_auth_method: client_auth_method,
+      code_verifier: session.delete(:code_verifier)
+    )
 
-    # Add scope for social provider if social login is requested
-    if params[:provider].present?
-      default_scope << params[:provider]
-    else
-      default_scope
-    end
+    id_token = OpenIDConnect::ResponseObject::IdToken.decode(access_token.id_token, SessionsHelper.discovery)
+    id_token.verify!(
+      issuer: SessionsHelper.discovery.issuer,
+      client_id: client.identifier,
+      nonce: session.delete(:nonce)
+    )
+
+    access_token
+  end
+
+  # Must match the app's "Token Endpoint Authentication Method" in OneLogin.
+  # POST and None (PKCE) both send the client_id in the request body; None has no secret.
+  def client_auth_method
+    ENV.fetch("ONELOGIN_TOKEN_AUTH_METHOD", "basic") == "basic" ? :basic : :post
   end
 
   def log_in(access_token)
-    puts "ACCESS_TOKEN: #{access_token}"
-    session[:access_token] = access_token
+    session[:access_token] = access_token.access_token
   end
 
   def log_out
-    session.delete(:access_token)
+    if session[:access_token].present?
+      client.revoke!(access_token: session[:access_token], client_auth_method: client_auth_method)
+    end
+  rescue Rack::OAuth2::Client::Error => e
+    logger.warn("Token revocation failed: #{e.message}")
+  ensure
+    reset_session
     @current_user = nil
   end
 
@@ -53,6 +81,10 @@ module SessionsHelper
     )
 
     access_token.userinfo!
+  rescue OpenIDConnect::Unauthorized
+    # The access token expired or was revoked at OneLogin
+    session.delete(:access_token)
+    nil
   end
 
   def current_user

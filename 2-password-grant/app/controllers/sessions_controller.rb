@@ -1,9 +1,9 @@
 class SessionsController < ApplicationController
-  def new
-    if log_in(params['username'], params['password'])
+  def create
+    if log_in(params[:username], params[:password])
       redirect_to dashboard_url
     else
-      redirect_to root_url, error: 'Login failed.'
+      redirect_to root_url, alert: "Login failed."
     end
   end
 

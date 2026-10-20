@@ -5,7 +5,7 @@
 </p>
 
 
-<%= form_tag("/login", method: "post") do %>
+<%= form_tag(new_session_path, method: "post") do %>
 
   <div>
     <%= label_tag(:username, "Username") %>
@@ -14,7 +14,7 @@
 
   <div>
     <%= label_tag(:password, "Password") %>
-    <%= text_field_tag(:password) %>
+    <%= password_field_tag(:password) %>
   </div>
 
   <%= submit_tag("Login") %>

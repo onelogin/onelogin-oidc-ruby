@@ -2,10 +2,10 @@
 
 This repo contains ruby sample apps that demonstrate the various OpenId Connect flows.
 
-1. Authentication Flow
-2. Resource Owner Password Grant
+1. [Authentication Flow](1-auth-flow)
+2. [Resource Owner Password Grant](2-password-grant)
 
-For a singe page app (SPA) example see our [Node.js OpenId Connect repo](https://github.com/onelogin/onelogin-oidc-node/tree/master/2.%20Implicit%20Flow).
+For a single page app (SPA) example see our [Node.js OpenId Connect repo](https://github.com/onelogin/onelogin-oidc-node/tree/master/2.%20Implicit%20Flow).
 
 ## What can I use these for
 OpenId Connect is a great way to add user authentication to your application
@@ -33,4 +33,4 @@ If you don't have a OneLogin developer account [you can sign up here](https://ww
 ### Local testing
 By default these samples will run on `http://localhost:3000`.
 
-You will need to add your callback url to the list of approved **Redirect URIs** for your OneLogin OIDC app via the Admin portal. e.g. `http://localhost:3000/oauth/callback`
+The Authentication Flow sample needs its callback url in the list of approved **Redirect URIs** for your OneLogin OIDC app via the Admin portal: `http://localhost:3000/signin-oidc`
