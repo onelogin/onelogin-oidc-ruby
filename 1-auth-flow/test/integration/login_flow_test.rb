@@ -118,6 +118,32 @@ class LoginFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "dashboard ignores UserInfo about a different user than the ID token" do
+    stub_request(:get, "#{ISSUER}/me")
+      .with(headers: { "Authorization" => "Bearer test-access-token" })
+      .to_return(json_response(sub: "99999", given_name: "Mallory", email: "mallory@example.com"))
+    query = start_login
+    stub_token_response(id_token: id_token(nonce: query["nonce"]))
+    get "/signin-oidc", params: { code: "test-code", state: query["state"] }
+
+    get "/dashboard"
+
+    assert_redirected_to root_url
+  end
+
+  test "logout ends the session even when OneLogin can't be reached" do
+    query = start_login
+    stub_token_response(id_token: id_token(nonce: query["nonce"]))
+    get "/signin-oidc", params: { code: "test-code", state: query["state"] }
+    stub_request(:post, "#{ISSUER}/token/revocation").to_timeout
+
+    delete "/logout"
+
+    assert_redirected_to root_url
+    get "/dashboard"
+    assert_redirected_to root_url
+  end
+
   test "callback reports a token endpoint error" do
     query = start_login
     stub_request(:post, "#{ISSUER}/token").to_return(

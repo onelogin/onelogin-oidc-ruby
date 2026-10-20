@@ -35,7 +35,10 @@ module SessionsHelper
         }
       )
     end
-
+  rescue StandardError => e
+    # Still end the local session when OneLogin can't be reached
+    logger.warn("Token revocation failed: #{e.message}")
+  ensure
     reset_session
     @current_user = nil
   end

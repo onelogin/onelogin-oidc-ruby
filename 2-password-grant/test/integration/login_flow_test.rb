@@ -71,6 +71,18 @@ class LoginFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_url
   end
 
+  test "logout ends the session even when OneLogin can't be reached" do
+    stub_request(:post, "#{ISSUER}/token").to_return(json_response(access_token: "test-access-token", token_type: "Bearer"))
+    stub_request(:post, "#{ISSUER}/token/revocation").to_timeout
+    post "/login", params: { username: "ada", password: "correct horse" }
+
+    delete "/logout"
+
+    assert_redirected_to root_url
+    get "/dashboard"
+    assert_redirected_to root_url
+  end
+
   private
 
   def json_response(status: 200, **body)

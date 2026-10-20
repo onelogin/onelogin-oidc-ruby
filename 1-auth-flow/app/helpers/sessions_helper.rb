@@ -35,7 +35,7 @@ module SessionsHelper
 
   # Swaps the authorization code for tokens, then checks that the ID token was
   # signed by OneLogin, issued to this app, and belongs to this login attempt
-  def request_access_token(code)
+  def request_tokens(code)
     client.authorization_code = code
     access_token = client.access_token!(
       client_auth_method: client_auth_method,
@@ -49,7 +49,7 @@ module SessionsHelper
       nonce: session.delete(:nonce)
     )
 
-    access_token
+    [ access_token, id_token ]
   end
 
   # Must match the app's "Token Endpoint Authentication Method" in OneLogin: basic, post or none
@@ -63,15 +63,17 @@ module SessionsHelper
     token_auth_method == "basic" ? :basic : :post
   end
 
-  def log_in(access_token)
+  def log_in(access_token, id_token)
     session[:access_token] = access_token.access_token
+    session[:user_id] = id_token.sub
   end
 
   def log_out
     if session[:access_token].present?
       client.revoke!(access_token: session[:access_token], client_auth_method: client_auth_method)
     end
-  rescue Rack::OAuth2::Client::Error => e
+  rescue Rack::OAuth2::Client::Error, Faraday::Error => e
+    # Still end the local session when OneLogin refuses or can't be reached
     logger.warn("Token revocation failed: #{e.message}")
   ensure
     reset_session
@@ -86,7 +88,9 @@ module SessionsHelper
       client: client
     )
 
-    access_token.userinfo!
+    user_info = access_token.userinfo!
+    # Only trust UserInfo about the user the ID token was issued for (OpenID Connect Core 5.3.2)
+    user_info if user_info.sub == session[:user_id]
   rescue OpenIDConnect::Unauthorized
     # The access token expired or was revoked at OneLogin
     session.delete(:access_token)
