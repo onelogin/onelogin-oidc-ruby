@@ -17,7 +17,7 @@ class SessionsController < ApplicationController
     # Token Request
     log_in(request_access_token(params[:code])) # => OpenIDConnect::AccessToken
     redirect_to dashboard_url
-  rescue Rack::OAuth2::Client::Error, OpenIDConnect::ResponseObject::IdToken::InvalidToken => e
+  rescue Rack::OAuth2::Client::Error, OpenIDConnect::ResponseObject::IdToken::InvalidToken, JSON::JWT::Exception => e
     logger.warn("Login failed: #{e.message}")
     redirect_to root_url, alert: "Login failed: #{e.message}"
   end

@@ -86,6 +86,38 @@ class LoginFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_url
   end
 
+  test "callback rejects an ID token that OneLogin did not sign" do
+    query = start_login
+    stub_token_response(id_token: id_token(nonce: query["nonce"], key: OpenSSL::PKey::RSA.generate(2048)))
+
+    get "/signin-oidc", params: { code: "test-code", state: query["state"] }
+
+    assert_redirected_to root_url
+    assert_match "Login failed", flash[:alert]
+    get "/dashboard"
+    assert_redirected_to root_url
+  end
+
+  test "a None (PKCE) client sends only its client_id, even with a secret configured" do
+    with_token_auth_method("none") do
+      query = start_login
+      stub_token_response(id_token: id_token(nonce: query["nonce"]))
+      get "/signin-oidc", params: { code: "test-code", state: query["state"] }
+      assert_redirected_to "/dashboard"
+      revocation = stub_request(:post, "#{ISSUER}/token/revocation")
+        .with(body: { token: "test-access-token", token_type_hint: "access_token", client_id: "test-client-id" })
+        .to_return(status: 200)
+
+      delete "/logout"
+
+      assert_requested revocation
+      assert_requested(:post, "#{ISSUER}/token") do |request|
+        form = Rack::Utils.parse_query(request.body)
+        form["client_id"] == "test-client-id" && !form.key?("client_secret") && !request.headers.key?("Authorization")
+      end
+    end
+  end
+
   test "callback reports a token endpoint error" do
     query = start_login
     stub_request(:post, "#{ISSUER}/token").to_return(
@@ -142,13 +174,21 @@ class LoginFlowTest < ActionDispatch::IntegrationTest
     ))
   end
 
-  def id_token(nonce:)
+  def id_token(nonce:, key: SIGNING_KEY)
     jwt = JSON::JWT.new(
       iss: ISSUER, sub: "12345", aud: "test-client-id", nonce: nonce,
       iat: Time.now.to_i, exp: 5.minutes.from_now.to_i
     )
     jwt.kid = "test-key"
-    jwt.sign(SIGNING_KEY, :RS256).to_s
+    jwt.sign(key, :RS256).to_s
+  end
+
+  def with_token_auth_method(method)
+    previous = ENV["ONELOGIN_TOKEN_AUTH_METHOD"]
+    ENV["ONELOGIN_TOKEN_AUTH_METHOD"] = method
+    yield
+  ensure
+    ENV["ONELOGIN_TOKEN_AUTH_METHOD"] = previous
   end
 
   def json_response(status: 200, **body)

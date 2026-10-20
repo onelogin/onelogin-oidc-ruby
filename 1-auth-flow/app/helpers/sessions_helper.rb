@@ -8,7 +8,8 @@ module SessionsHelper
   def client
     @client ||= OpenIDConnect::Client.new(
       identifier: ENV.fetch("ONELOGIN_CLIENT_ID"),
-      secret: ENV["ONELOGIN_CLIENT_SECRET"],
+      # A None (PKCE) app is a public client, so it never sends a secret
+      secret: (ENV["ONELOGIN_CLIENT_SECRET"] unless token_auth_method == "none"),
       redirect_uri: ENV.fetch("ONELOGIN_REDIRECT_URI"),
       authorization_endpoint: SessionsHelper.discovery.authorization_endpoint,
       token_endpoint: SessionsHelper.discovery.token_endpoint,
@@ -51,10 +52,15 @@ module SessionsHelper
     access_token
   end
 
-  # Must match the app's "Token Endpoint Authentication Method" in OneLogin.
-  # POST and None (PKCE) both send the client_id in the request body; None has no secret.
+  # Must match the app's "Token Endpoint Authentication Method" in OneLogin: basic, post or none
+  def token_auth_method
+    ENV.fetch("ONELOGIN_TOKEN_AUTH_METHOD", "basic")
+  end
+
+  # rack-oauth2 puts the client credentials in an Authorization header for :basic,
+  # and in the request body otherwise
   def client_auth_method
-    ENV.fetch("ONELOGIN_TOKEN_AUTH_METHOD", "basic") == "basic" ? :basic : :post
+    token_auth_method == "basic" ? :basic : :post
   end
 
   def log_in(access_token)
