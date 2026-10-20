@@ -6,9 +6,9 @@ module SessionsHelper
       secret: ENV['ONELOGIN_CLIENT_SECRET'],
       redirect_uri: ENV['ONELOGIN_REDIRECT_URI'],
       host: ENV['ONELOGIN_OIDC_HOST'],
-      authorization_endpoint: '/oidc/auth',
-      token_endpoint: '/oidc/token',
-      userinfo_endpoint: '/oidc/me'
+      authorization_endpoint: '/oidc/2/auth',
+      token_endpoint: '/oidc/2/token',
+      userinfo_endpoint: '/oidc/2/me'
     )
   end
 

@@ -12,7 +12,7 @@ implements
 
 ```ruby
 def log_in(username, password)
-  response = HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/token",
+  response = HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/2/token",
     body: {
       grant_type: 'password',
       client_id: ONELOGIN_CLIENT_ID,
@@ -37,7 +37,7 @@ end
   def user_info
     return nil unless session[:access_token].present?
 
-    response = HTTParty.get("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/me",
+    response = HTTParty.get("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/2/me",
       headers: {
         'Authorization' => "Bearer #{session[:access_token]}"
       }
@@ -51,7 +51,7 @@ end
 
 ```ruby
 def log_out
-  HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/token/revocation",
+  HTTParty.post("https://#{ONELOGIN_SUBDOMAIN}.onelogin.com/oidc/2/token/revocation",
     body: {
       client_id: ONELOGIN_CLIENT_ID,
       client_secret: ONELOGIN_CLIENT_SECRET,
