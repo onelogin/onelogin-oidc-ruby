@@ -1,0 +1,21 @@
+<h1>OneLogin OpenId Connect Sample</h1>
+<p>
+  This is a simple demo of how to use the
+  openid connect Resource Owner Password Grant.
+</p>
+
+
+<%= form_tag(new_session_path, method: "post") do %>
+
+  <div>
+    <%= label_tag(:username, "Username") %>
+    <%= text_field_tag(:username) %>
+  </div>
+
+  <div>
+    <%= label_tag(:password, "Password") %>
+    <%= password_field_tag(:password) %>
+  </div>
+
+  <%= submit_tag("Login") %>
+<% end %>
